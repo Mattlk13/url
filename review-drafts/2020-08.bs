@@ -1,9 +1,9 @@
 <pre class=metadata>
 Group: WHATWG
+Date: 2020-08-17
 H1: URL
 Shortname: url
 Text Macro: TWITTER urlstandard
-Text Macro: LATESTRD 2020-08
 Abstract: The URL Standard defines URLs, domains, IP addresses, the <code>application/x-www-form-urlencoded</code> format, and their API.
 Translation: ja https://triple-underscore.github.io/URL-ja.html
 </pre>
@@ -11,7 +11,6 @@ Translation: ja https://triple-underscore.github.io/URL-ja.html
 <pre class=anchors>
 url: https://tc39.es/ecma262/#sec-encodeuricomponent-uricomponent; text: "encodeURIComponent() [sic]"; type: method; spec: ECMA-262
 </pre>
-
 
 
 <h2 id=goals class=no-num>Goals</h2>
@@ -217,56 +216,67 @@ inclusive, and U+007E (~).
 all code points, except the <a>ASCII alphanumeric</a>, U+002A (*), U+002D (-), U+002E (.), and
 U+005F (_).
 
-<p>To <dfn for=string>percent-encode after encoding</dfn>, given an <a for=/>encoding</a>
-<var>encoding</var>, <a for=/>string</a> <var>input</var>, a <var>percentEncodeSet</var>, and an
-optional boolean <var>spaceAsPlus</var> (default false), run these steps:
+<p>To <dfn for="code point">percent-encode after encoding</dfn>, given an <a for=/>encoding</a>
+<var>encoding</var>, <a for=/>code point</a> <var>codePoint</var>, and a
+<var>percentEncodeSet</var>, run these steps:
 
 <ol>
- <li><p>Let <var>encoder</var> be the result of <a>getting an encoder</a> from <var>encoding</var>.
-
- <li><p>Let <var>inputQueue</var> be <var>input</var> converted to an <a for=/>I/O queue</a>.
-
- <li><p>Let <var>output</var> be the empty string.
+ <li><p>Let <var>bytes</var> be the result of <a lt=encode>encoding</a> <var>codePoint</var> using
+ <var>encoding</var>.
 
  <li>
-  <p>Let <var>potentialError</var> be 0.
-
-  <p class=note>This needs to be a non-null value to initiate the subsequent while loop.
-
- <li>
-  <p>While <var>potentialError</var> is non-null:
+  <p>If <var>bytes</var> starts with 0x26 (&amp;) 0x23 (#) and ends with 0x3B (;), then:
 
   <ol>
-   <li><p>Let <var>encodeOutput</var> be an empty <a for=/>I/O queue</a>.
+   <li><p>Let <var>output</var> be <var>bytes</var>, <a>isomorphic decoded</a>.
 
-   <li><p>Set <var>potentialError</var> to the result of running <a>encode or fail</a> with
-   <var>inputQueue</var>, <var>encoder</var>, and <var>encodeOutput</var>.
+   <li><p>Replace the first two code points of <var>output</var> with "<code>%26%23</code>".
 
-   <li>
-    <p>For each <var>byte</var> of <var>encodeOutput</var> converted to a byte sequence:
+   <li><p>Replace the last code point of <var>output</var> with "<code>%3B</code>".
 
-    <ol>
-     <li><p>If <var>spaceAsPlus</var> is true and <var>byte</var> is 0x20 (SP), then append
-     U+002B (+) to <var>output</var> and <a for=iteration>continue</a>.
+   <li><p>Return <var>output</var>.
+  </ol>
 
-     <li><p>Let <var>isomorph</var> be a <a for=/>code point</a> whose <a for="code point">value</a>
-     is <var>byte</var>'s <a for=byte>value</a>.
+  <p class="note no-backref">This can happen when <var>encoding</var> is not <a>UTF-8</a>.
 
-     <li><p>Assert: <var>percentEncodeSet</var> includes all non-<a>ASCII code points</a>.
+ <li><p>Let <var>output</var> be the empty string.</p></li>
 
-     <li><p>If <var>isomorph</var> is not in <var>percentEncodeSet</var>, then append
-     <var>isomorph</var> to <var>output</var>.
+ <li>
+  <p>For each <var>byte</var> of <var>bytes</var>:
 
-     <li><p>Otherwise, <a for=byte>percent-encode</a> <var>byte</var> and append the result to
-     <var>output</var>.
-    </ol>
+  <ol>
+   <li><p>Let <var>isomorph</var> be a <a for=/>code point</a> whose <a for="code point">value</a>
+   is <var>byte</var>'s <a for=byte>value</a>.
 
-   <li>
-    <p>If <var>potentialError</var> is non-null, then append "<code>%26%23</code>", followed by the
-    shortest sequence of <a for=/>ASCII digits</a> representing <var>potentialError</var> in base
-    ten, followed by "<code>%3B</code>", to <var>output</var>.
+   <li><p>Assert: <var>percentEncodeSet</var> includes all non-<a>ASCII code points</a>.
 
-    <p class="note no-backref">This can happen when <var>encoding</var> is not <a>UTF-8</a>.
+   <li><p>If <var>isomorph</var> is not in <var>percentEncodeSet</var>, then append
+   <var>isomorph</var> to <var>output</var>.
+
+   <li><p>Otherwise, <a for=byte>percent-encode</a> <var>byte</var> and append the result to
+   <var>output</var>.
+  </ol>
+
+ <li><p>Return <var>output</var>.
+</ol>
+
+<p>To <dfn for="string">percent-encode after encoding</dfn>, given an <a for=/>encoding</a>
+<var>encoding</var>, <a for=/>string</a> <var>input</var>, a <var>percentEncodeSet</var>, and a
+boolean <var>spaceAsPlus</var>, run these steps:
+
+<ol>
+ <li><p>Let <var>output</var> be the empty string.</p></li>
+
+ <li>
+  <p>For each <var>codePoint</var> of <var>input</var>:
+
+  <ol>
+   <li><p>If <var>spaceAsPlus</var> is true and <var>codePoint</var> is U+0020, then append
+   U+002B (+) to <var>output</var>.
+
+   <li><p>Otherwise, run <a for="code point">percent-encode after encoding</a> with
+   <var>encoding</var>, <var>codePoint</var>, and <var>percentEncodeSet</var>, and append the result
+   to <var>output</var>.
   </ol>
 
  <li><p>Return <var>output</var>.
@@ -274,13 +284,13 @@ optional boolean <var>spaceAsPlus</var> (default false), run these steps:
 
 <p>To <dfn for="code point" id=utf-8-percent-encode>UTF-8 percent-encode</dfn> a
 <a for=/>code point</a> <var>codePoint</var> using a <var>percentEncodeSet</var>, return the result
-of running <a for=string>percent-encode after encoding</a> with <a for=/>UTF-8</a>,
-<var>codePoint</var> as a <a for=/>string</a>, and <var>percentEncodeSet</var>.
+of running <a for="code point">percent-encode after encoding</a> with <a for=/>UTF-8</a>,
+<var>codePoint</var>, and <var>percentEncodeSet</var>.
 
 <p>To <dfn export for=string>UTF-8 percent-encode</dfn> a <a for=/>string</a> <var>input</var> using
 a <var>percentEncodeSet</var>, return the result of running
-<a for=string>percent-encode after encoding</a> with <a for=/>UTF-8</a>, <var>input</var>, and
-<var>percentEncodeSet</var>.
+<a for=string>percent-encode after encoding</a> with <a for=/>UTF-8</a>, <var>input</var>,
+<var>percentEncodeSet</var>, and false.
 
 <hr>
 
@@ -293,12 +303,9 @@ a <var>percentEncodeSet</var>, return the result of running
    <th>Input
    <th>Output
   <tr>
-   <td rowspan=2><a for=byte>Percent-encode</a> <var>input</var>
-   <td>0x23
-   <td>"<code>%23</code>"
-  <tr>
+   <td><a for=byte>Percent-encode</a> <var>input</var>
    <td>0x7F
-   <td>"<code>%7F</code>"
+   <td>"<code>%23</code>"
   <tr>
    <td><a for="byte sequence">Percent-decode</a> <var>input</var>
    <td>`<code>%25%s%1G</code>`
@@ -308,20 +315,20 @@ a <var>percentEncodeSet</var>, return the result of running
    <td>"<code>‽%25%2E</code>"
    <td>0xE2 0x80 0xBD 0x25 0x2E
   <tr>
-   <td rowspan=3><a for=string>Percent-encode after encoding</a> with <a>Shift_JIS</a>,
+   <td rowspan=3><a for="code point">Percent-encode after encoding</a> with <a>Shift_JIS</a>,
    <var>input</var>, and the <a>userinfo percent-encode set</a>
-   <td>"<code> </code>"
+   <td>U+0020
    <td>"<code>%20</code>"
   <tr>
-   <td>"<code>≡</code>"
+   <td>U+2261 (≡)
    <td>"<code>%81%DF</code>"
   <tr>
-   <td>"<code>‽</code>"
+   <td>U+203D (‽)
    <td>"<code>%26%238253%3B</code>"
   <tr>
-   <td><a for=string>Percent-encode after encoding</a> with <a>ISO-2022-JP</a>, <var>input</var>,
-   and the <a>userinfo percent-encode set</a>
-   <td>"<code>¥</code>"
+   <td><a for="code point">Percent-encode after encoding</a> with <a>ISO-2022-JP</a>,
+   <var>input</var>, and the <a>userinfo percent-encode set</a>
+   <td>U+00A5 (¥)
    <td>"<code>%1B(J\%1B(B</code>"
   <tr>
    <td><a for=string>Percent-encode after encoding</a> with <a>Shift_JIS</a>, <var>input</var>, the
@@ -1249,7 +1256,7 @@ It is initially the empty string.
    <td>✅
    <td>❌
    <td>✅
-   <td>❌
+   <td>✅
   <tr>
    <td>Others
    <td>❌
@@ -1751,7 +1758,7 @@ string <var>input</var>, optionally with a <a>base URL</a> <var>base</var>, opti
          and <var>buffer</var> is "<code>file</code>", then return.
 
          <li><p>If <var>url</var>'s <a for=url>scheme</a> is "<code>file</code>" and its
-         <a for=url>host</a> is an <a>empty host</a>, then return.
+         <a for=url>host</a> is an <a>empty host</a> or null, then return.
         </ol>
 
        <li><p>Set <var>url</var>'s <a for=url>scheme</a> to <var>buffer</var>.
@@ -2128,8 +2135,6 @@ string <var>input</var>, optionally with a <a>base URL</a> <var>base</var>, opti
     <ol>
      <li><p>Set <var>url</var>'s <a for=url>scheme</a> to "<code>file</code>".
 
-     <li><p>Set <var>url</var>'s <a for=url>host</a> to the empty string.
-
      <li>
       <p>If <a>c</a> is U+002F (/) or U+005C (\), then:
 
@@ -2171,7 +2176,8 @@ string <var>input</var>, optionally with a <a>base URL</a> <var>base</var>, opti
           <ol>
            <li><p><a>Validation error</a>.
 
-           <li><p>Set <var>url</var>'s <a for=url>path</a> to an empty list.
+           <li><p>Set <var>url</var>'s <a for=url>host</a> to null and <var>url</var>'s
+           <a for=url>path</a> to an empty list.
           </ol>
 
           <p class=note>This is a (platform-independent) Windows drive letter quirk.
@@ -2201,20 +2207,22 @@ string <var>input</var>, optionally with a <a>base URL</a> <var>base</var>, opti
 
       <ol>
        <li>
-        <p>If <var>base</var> is non-null and <var>base</var>'s <a for=url>scheme</a> is
-        "<code>file</code>", then:
+        <p>If <var>base</var> is non-null, <var>base</var>'s <a for=url>scheme</a> is
+        "<code>file</code>", and the substring from <var>pointer</var> in <var>input</var> does not
+        <a>start with a Windows drive letter</a>, then:
 
         <ol>
-         <li><p>Set <var>url</var>'s <a for=url>host</a> to <var>base</var>'s <a for=url>host</a>.
-
          <li>
-          <p>If the substring from <var>pointer</var> in <var>input</var> does not
-          <a>start with a Windows drive letter</a> and <var>base</var>'s <a for=url>path</a>[0] is a
+          <p>If <var>base</var>'s <a for=url>path</a>[0] is a
           <a>normalized Windows drive letter</a>, then <a for=list>append</a> <var>base</var>'s
           <a for=url>path</a>[0] to <var>url</var>'s <a for=url>path</a>.
 
-          <p class=note>This is a (platform-independent) Windows drive letter quirk.
+          <p class=note>This is a (platform-independent) Windows drive letter quirk. Both
+          <var>url</var>'s and <var>base</var>'s <a for=url>host</a> are null under these conditions
+          and therefore not copied.
 
+         <li><p>Otherwise, set <var>url</var>'s <a for=url>host</a> to <var>base</var>'s
+         <a for=url>host</a>.
         </ol>
 
        <li><p>Set <var>state</var> to <a>path state</a>, and decrease <var>pointer</var> by 1.
@@ -2349,8 +2357,14 @@ string <var>input</var>, optionally with a <a>base URL</a> <var>base</var>, opti
          <li>
           <p>If <var>url</var>'s <a for=url>scheme</a> is "<code>file</code>", <var>url</var>'s
           <a for=url>path</a> <a for=list>is empty</a>, and <var>buffer</var> is a
-          <a>Windows drive letter</a>, then replace the second code point in <var>buffer</var> with
-          U+003A (:).
+          <a>Windows drive letter</a>, then:
+
+          <ol>
+           <li><p>If <var>url</var>'s <a for=url>host</a> is neither the empty string nor null,
+           <a>validation error</a>, set <var>url</var>'s <a for=url>host</a> to the empty string.
+
+           <li><p>Replace the second code point in <var>buffer</var> with U+003A (:).
+          </ol>
 
           <p class=note>This is a (platform-independent) Windows drive letter quirk.
 
@@ -2358,6 +2372,12 @@ string <var>input</var>, optionally with a <a>base URL</a> <var>base</var>, opti
         </ol>
 
        <li><p>Set <var>buffer</var> to the empty string.
+
+       <li><p>If <var>url</var>'s <a for=url>scheme</a> is "<code>file</code>" and <a>c</a> is the
+       <a>EOF code point</a>, U+003F (?), or U+0023 (#), then while <var>url</var>'s
+       <a for=url>path</a>'s <a for=list>size</a> is greater than 1 and <var>url</var>'s
+       <a for=url>path</a>[0] is the empty string, <a>validation error</a>, <a for=list>remove</a>
+       the first <a for=list>item</a> from <var>url</var>'s <a for=url>path</a>.
 
        <li><p>If <a>c</a> is U+003F (?), then set <var>url</var>'s <a for=url>query</a> to the empty
        string and <var>state</var> to <a>query state</a>.
@@ -2421,33 +2441,9 @@ string <var>input</var>, optionally with a <a>base URL</a> <var>base</var>, opti
       <p>then set <var>encoding</var> to <a>UTF-8</a>.
       <!-- https://simon.html5.org/test/url/url-encoding.html -->
 
-     <li>
-      <p>If one of the following is true:
-
-      <ul class=brief>
-       <li><p><var>state override</var> is not given and <a>c</a> is U+0023 (#)
-       <li><p><a>c</a> is the <a>EOF code point</a>
-      </ul>
-
-      <p>then:
-
-      <ol>
-       <li><p>Let <var>queryPercentEncodeSet</var> be the <a>special-query percent-encode set</a> if
-       <var>url</var> <a>is special</a>; otherwise the <a>query percent-encode set</a>.
-
-       <li>
-        <p><a for=string>Percent-encode after encoding</a>, with <var>encoding</var>,
-        <var>buffer</var>, and <var>queryPercentEncodeSet</var>, and append the result to
-        <var>url</var>'s <a for=url>query</a>.
-
-        <p class=note>This operation cannot be invoked code-point-for-code-point due to the stateful
-        <a>ISO-2022-JP encoder</a>.
-
-       <li><p>Set <var>buffer</var> to the empty string.
-
-       <li><p>If <a>c</a> is U+0023 (#), then set <var>url</var>'s <a for=url>fragment</a> to
-       the empty string and state to <a>fragment state</a>.
-      </ol>
+     <li><p>If <var>state override</var> is not given and <a>c</a> is U+0023 (#), then set
+     <var>url</var>'s <a for=url>fragment</a> to the empty string and state to
+     <a>fragment state</a>.
 
      <li>
       <p>Otherwise, if <a>c</a> is not the <a>EOF code point</a>:
@@ -2459,7 +2455,12 @@ string <var>input</var>, optionally with a <a>base URL</a> <var>base</var>, opti
        <li><p>If <a>c</a> is U+0025 (%) and <a>remaining</a> does not start with two
        <a>ASCII hex digits</a>, <a>validation error</a>.
 
-       <li><p>Append <a>c</a> to <var>buffer</var>.
+       <li><p>Let <var>queryPercentEncodeSet</var> be the <a>special-query percent-encode set</a> if
+       <var>url</var> <a>is special</a>; otherwise the <a>query percent-encode set</a>.
+
+       <li><p><a for="code point">Percent-encode after encoding</a>, with <var>encoding</var>,
+       <a>c</a>, and <var>queryPercentEncodeSet</var>, and append the result to <var>url</var>'s
+       <a for=url>query</a>.
       </ol>
     </ol>
 
@@ -2535,25 +2536,15 @@ then runs these steps, returning an <a>ASCII string</a>:
    <var>output</var>.
   </ol>
 
+ <li><p>Otherwise, if <var>url</var>'s <a for=url>host</a> is null and
+ <var>url</var>'s <a for=url>scheme</a> is "<code>file</code>", append
+ "<code>//</code>" to <var>output</var>.
+
  <li><p>If <var>url</var>'s <a for=url>cannot-be-a-base-URL flag</a> is set, append <var>url</var>'s
  <a for=url>path</a>[0] to <var>output</var>.
 
- <li>
-  <p>Otherwise:
-
-  <ol>
-   <li><p>If <var>url</var>'s <a for=url>host</a> is null, <var>url</var>'s <a for=url>path</a>'s
-   <a for=list>size</a> is greater than 1, and <var>url</var>'s <a for=url>path</a>[0] is the empty
-   string, then append U+002F (/) followed by U+002E (.) to <var>output</var>.
-
-   <li><p><a for=list>For each</a> <var>segment</var> of <var>url</var>'s <a for=url>path</a>:
-   append U+002F (/) followed by <var>segment</var> to <var>output</var>.
-  </ol>
-
-  <p class=note>This prevents <code>web+demo:/.//not-a-host/</code> or
-  <code>web+demo:/path/..//not-a-host/</code>, when <a lt="URL parser">parsed</a> and then
-  <a lt="URL serializer">serialized</a>, from ending up as <code>web+demo://not-a-host/</code> (they
-  end up as <code>web+demo:/.//not-a-host/</code>).
+ <li><p>Otherwise, then <a for=list>for each</a> string in <var>url</var>'s <a for=url>path</a>,
+ append U+002F (/) followed by the string to <var>output</var>.
 
  <li><p>If <var>url</var>'s <a for=url>query</a> is non-null, append
  U+003F (?), followed by <var>url</var>'s <a for=url>query</a>, to
@@ -3165,14 +3156,14 @@ does return a <a>URL-port string</a> so one might have assumed the setter to alw
 interface URLSearchParams {
   constructor(optional (sequence&lt;sequence&lt;USVString>> or record&lt;USVString, USVString> or USVString) init = "");
 
-  undefined append(USVString name, USVString value);
-  undefined delete(USVString name);
+  void append(USVString name, USVString value);
+  void delete(USVString name);
   USVString? get(USVString name);
   sequence&lt;USVString> getAll(USVString name);
   boolean has(USVString name);
-  undefined set(USVString name, USVString value);
+  void set(USVString name, USVString value);
 
-  undefined sort();
+  void sort();
 
   iterable&lt;USVString, USVString>;
   stringifier;
@@ -3398,7 +3389,6 @@ Albert Wiersch,
 Alex Christensen,
 Alexandre Morgaut,
 Alexis Hunt,
-Alwin Blok,
 Andrew Sullivan,
 Arkadiusz Michalski,
 Behnam Esfahbod,
@@ -3490,11 +3480,9 @@ Tristan Seligmann,
 Valentin Gosu,
 Vyacheslav Matva,
 Wei Wang,
-Wolf Lammen,
 山岸和利 (Yamagishi Kazutoshi),
-Yongsheng Zhang,
-成瀬ゆい (Yui Naruse), and
-zealousidealroll
+Yongsheng Zhang, and
+成瀬ゆい (Yui Naruse)
 for being awesome!
 
 <p>This standard is written by
